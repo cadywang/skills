@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Skills (encoding, layout, front matter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Reject UTF-8 BOM
+        run: |
+          bad=0
+          while IFS= read -r -d '' f; do
+            if [ "$(head -c 3 "$f" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
+              echo "::error file=$f::has UTF-8 BOM"; bad=1
+            fi
+          done < <(find . -path ./.git -prune -o -type f \( -name '*.md' -o -name '*.py' -o -name '*.sh' -o -name '*.yml' \) -print0)
+          exit "$bad"
+
+      - name: Reject CRLF in md / py / sh / yml
+        run: |
+          bad=0
+          for pat in '*.md' '*.py' '*.sh' '*.yml'; do
+            while IFS= read -r -d '' f; do
+              if LC_ALL=C grep -q "$(printf '\r')" "$f"; then
+                echo "::error file=$f::CRLF line ending"; bad=1
+              fi
+            done < <(find . -path ./.git -prune -o -type f -name "$pat" -print0)
+          done
+          exit "$bad"
+
+      - name: Python syntax
+        run: python3 -m compileall -q tools tests
+
+      - name: Self-test the checker
+        run: python3 tests/test_check_skills.py
+
+      - name: Validate skills
+        run: python3 tools/check-skills.py
