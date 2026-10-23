@@ -2,8 +2,13 @@
 
 每个子目录就是一个 Codex skill，规则见根目录 [README.md](../README.md)。
 
-目前本目录为空：已有的 `cadywang-blog` / `serial-debug-bridge` 仍在各自源仓库里
-（见根 README 的 catalog）。要新增一个 skill：
+已收录：
+
+| skill | 说明 |
+| --- | --- |
+| `serial-debug-bridge` | server 侧串口调试；依赖 serial-debug-bridge 仓库的 `devctl.py` |
+
+`cadywang-blog` 仍在它的源仓库里，见根 README 的 catalog。要新增一个 skill：
 
 ```bash
 mkdir -p skills/my-skill

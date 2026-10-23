@@ -45,16 +45,37 @@ cp -r skills/my-skill ~/.codex/skills/
 
 卸载就是删掉 `~/.codex/skills/<skill-name>/`；更新就是重新覆盖复制。
 
-## 已有 skill 的位置（catalog）
+### `serial-debug-bridge` 额外需要 `devctl.py`
 
-这些 skill 暂时仍以**源仓库**为唯一真源（避免两份副本漂移），本仓库负责索引与安装方式：
+`serial-debug-bridge` 的 `scripts/sdb` 会按 `$SDB_DEVCTL` → `~/serial-debug-bridge/devctl.py`
+→ `./cli/devctl.py` 的顺序找 `devctl.py`（它属于桥仓库，不属于本 skill）：
+
+```bash
+mkdir -p ~/serial-debug-bridge
+curl -fsSL https://raw.githubusercontent.com/cadywang/serial-debug-bridge/main/cli/devctl.py \
+  -o ~/serial-debug-bridge/devctl.py
+# 或者 clone 整个仓库，然后 export SDB_DEVCTL=/path/to/cli/devctl.py
+```
+
+## 本仓库托管的 skill
+
+| skill | 目录 | 用途 |
+| --- | --- | --- |
+| `serial-debug-bridge` | `skills/serial-debug-bridge/` | 在 server 侧通过串口桥操作嵌入式设备：执行命令、传文件、复位、交互控制台、链路排障 |
+
+> skill 只负责「怎么用」；真正干活的 `agent/` 与 `devctl.py` 在
+> [cadywang/serial-debug-bridge](https://github.com/cadywang/serial-debug-bridge)。
+> `scripts/sdb` 需要那个仓库的 `devctl.py`，安装时一并放好（见下）。
+
+## 外部托管的 skill（catalog）
+
+这些 skill 仍以**源仓库**为唯一真源（避免两份副本漂移），本仓库只做索引：
 
 | skill | 位置 | 用途 |
 | --- | --- | --- |
 | `cadywang-blog` | [cadywang.github.io → `skill/cadywang-blog`](https://github.com/cadywang/cadywang.github.io/tree/main/skill/cadywang-blog) | 把一次工作整理成中文技术博客，走 PR 并触发发布 |
-| `serial-debug-bridge` | [serial-debug-bridge → `skill/serial-debug-bridge`](https://github.com/cadywang/serial-debug-bridge/tree/main/skill/serial-debug-bridge) | 在 server 侧通过串口桥操作嵌入式设备 |
 
-> 想把某个 skill 直接托管到本仓库（由本仓库做唯一真源）时：把目录复制进 `skills/`，
+> 想把某个 skill 也搬进来（由本仓库做唯一真源）时：把目录复制进 `skills/`，
 > 再把源仓库里的那份删掉或改成指向本仓库，避免两份实现各改各的。
 
 ## 新增一个 skill
