@@ -81,21 +81,29 @@ curl -fsSL https://raw.githubusercontent.com/cadywang/serial-debug-bridge/main/c
 ## 新增一个 skill
 
 ```bash
+# 克隆后跑一次：自动补 Signed-off-by、安装 commit-msg 钩子
+bash tools/dev-setup.sh
+
 mkdir -p skills/<name>
 $EDITOR skills/<name>/SKILL.md      # 按上面的最小格式
 python3 tools/check-skills.py       # 本地校验，CI 跑同一套
 ```
 
-提交（本仓库合并方式为 **Rebase and merge**，保持线性历史）：
+提交并开 PR（仓库只允许 **Rebase and merge**，保持线性历史）：
 
 ```bash
 git switch -c skill/<name>
 git add skills/<name>
-git commit -s -m "skill: add <name>"
+git commit -s -m "skill: add <name>"      # 内核风格 + DCO
 git push -u origin skill/<name>
 ```
 
-开 PR → CI 绿 → Rebase and merge。
+开 PR 之后：
+
+1. 按模板勾选「合并前清单」（`pr-gate` 强制校验，少一项不能合并）；
+2. 等 3 个必需检查全绿：`Hygiene (encoding, line endings, syntax)`、
+   `Skills (layout, front matter)`、`PR gate (title + merge checklist)`；
+3. Rebase and merge（提交原样落到 `main`，分支自动删除）。
 
 ## 约定
 
@@ -104,11 +112,34 @@ git push -u origin skill/<name>
 * skill 里的命令要能复制即用；路径用占位符（如 `<client>`），不要写死某台机器。
 * 一个 skill 只做一件事；触发条件写在 `description` 里，写清楚"什么时候用它"。
 
+## 仓库治理（门禁与合并方式）
+
+| 项 | 规则 |
+| --- | --- |
+| 直推 `main` | ❌ 禁止（`enforce_admins: true`，管理员也一样） |
+| 合并方式 | ✅ 仅 **Rebase and merge**（PR 里的提交原样落地），线性历史 |
+| 必需检查 | ✅ 三个 job 全绿且为最新提交（见下） |
+| PR 标题 | 内核规范 `<subsystem>: <祈使句摘要>`（`pr-gate` 校验） |
+| 合并前清单 | 模板里那一节逐条勾选（`pr-gate` 校验） |
+| commit | 内核规范 + `Signed-off-by:`（CI 的 `Hygiene` + 本地钩子校验） |
+
+规则的可执行版本在 `governance/`，用 `tools/create-github-repo.ps1` 施加（幂等，支持 `-DryRun`）：
+
+```powershell
+$env:GITHUB_TOKEN = '<token with administration:write on this repository>'
+pwsh -File tools/create-github-repo.ps1 -Owner cadywang
+```
+
+详细流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，闸门与同步清单见 [REVIEW_POLICY.md](REVIEW_POLICY.md)。
+
 ## 本地校验
 
 ```bash
 python3 tools/check-skills.py        # 校验 skills/* 的目录与 front matter
 python3 tests/test_check_skills.py   # 校验器自身的自测
+python3 tests/test_check_commits.py  # commit 门禁自测
+python3 tests/test_check_pr.py       # PR 门禁自测
+python3 tools/check-commits.py --all # 历史提交是否符合内核风格 + DCO
 ```
 
 ## 许可证

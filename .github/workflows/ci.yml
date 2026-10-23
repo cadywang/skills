@@ -15,11 +15,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: Skills (encoding, layout, front matter)
+  hygiene:
+    name: Hygiene (encoding, line endings, syntax)
     runs-on: ubuntu-latest
     steps:
+      # The commit style gate walks the pull request range, so it needs real
+      # history; the default depth 1 clone cannot resolve base..head.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -32,7 +36,7 @@ jobs:
             if [ "$(head -c 3 "$f" | od -An -tx1 | tr -d ' \n')" = "efbbbf" ]; then
               echo "::error file=$f::has UTF-8 BOM"; bad=1
             fi
-          done < <(find . -path ./.git -prune -o -type f \( -name '*.md' -o -name '*.py' -o -name '*.sh' -o -name '*.yml' \) -print0)
+          done < <(find . -path ./.git -prune -o -type f \( -name '*.ps1' -o -name '*.py' -o -name '*.sh' -o -name '*.md' -o -name '*.yml' \) -print0)
           exit "$bad"
 
       - name: Reject CRLF in md / py / sh / yml
@@ -50,7 +54,55 @@ jobs:
       - name: Python syntax
         run: python3 -m compileall -q tools tests
 
-      - name: Self-test the checker
+      - name: Shell syntax
+        run: |
+          for f in $(git ls-files '*.sh'); do
+            bash -n "$f" && echo "bash -n OK: $f"
+          done
+
+      - name: YAML sanity (no tabs)
+        run: |
+          for f in $(git ls-files '*.yml' '*.yaml'); do
+            if grep -Pn '\t' "$f" > /dev/null; then echo "::error file=$f::tab character in YAML"; exit 1; fi
+          done
+          echo "yaml sanity OK"
+
+      - name: Commit style self-test
+        run: python3 tests/test_check_commits.py
+
+      - name: Pull request gate self-test
+        run: python3 tests/test_check_pr.py
+
+      - name: Commit style (Linux kernel guidelines + DCO)
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 tools/check-commits.py --github-env --skip-bots
+          else
+            before="${{ github.event.before }}"
+            if [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ]; then
+              python3 tools/check-commits.py --range "${before}..${GITHUB_SHA}" --skip-bots
+            else
+              python3 tools/check-commits.py --skip-bots
+            fi
+          fi
+
+      - name: YAML parse
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check pyyaml
+          python3 -c "import glob,yaml; files=glob.glob('.github/**/*.yml',recursive=True)+glob.glob('.github/**/*.yaml',recursive=True); [list(yaml.safe_load_all(open(f,encoding='utf-8'))) for f in files]; print('yaml parsed:', len(files))"
+
+  skills:
+    name: Skills (layout, front matter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Self-test the validator
         run: python3 tests/test_check_skills.py
 
       - name: Validate skills

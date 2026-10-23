@@ -1,0 +1,21 @@
+{
+  "name": "skills",
+  "description": "个人 Codex skills 合集：每个 skill 一个目录，可安装到 ~/.codex/skills。",
+  "homepage": "",
+  "private": false,
+  "has_issues": true,
+  "has_projects": false,
+  "has_wiki": false,
+  "has_discussions": true,
+  "allow_squash_merge": false,
+  "allow_merge_commit": false,
+  "allow_rebase_merge": true,
+  "allow_auto_merge": false,
+  "delete_branch_on_merge": true,
+  "topics": [
+    "codex",
+    "skills",
+    "ai-agents",
+    "prompts"
+  ]
+}

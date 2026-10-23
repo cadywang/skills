@@ -1,0 +1,33 @@
+name: PR Gate
+
+# The title and the merge checklist exist only on the pull request, and one of
+# them can end up in main: a squash merge would write the pull request title
+# into the commit subject. Judging both here catches a bad title while it can
+# still be edited. See REVIEW_POLICY.md for how this fits the other gates.
+on:
+  pull_request:
+    branches: [main]
+    # Ticking a checklist box edits the description, so the gate has to run
+    # again after that edit.
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-gate:
+    name: PR gate (title + merge checklist)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Title style and merge checklist
+        run: python3 tools/check-pr.py --github-env
