@@ -95,7 +95,13 @@ try {
   }
   Invoke-Gh 'PATCH' "$api/repos/$Owner/$Repo" $payload
   if ($settings.topics) {
-    Invoke-Gh 'PUT' "$api/repos/$Owner/$Repo/topics" @{ names = @($settings.topics) }
+    try {
+      Invoke-Gh 'PUT' "$api/repos/$Owner/$Repo/topics" @{ names = @($settings.topics) }
+    } catch {
+      # Topics need their own permission; do not lose the protection step
+      # over a cosmetic field.
+      Write-Host '    warn: cannot set topics with this token; continuing'
+    }
   }
 
   Write-Host "==> protect $BaseBranch"
