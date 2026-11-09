@@ -137,33 +137,81 @@ ls -l /mnt/usb/*.wic
 sha256sum /mnt/usb/<your-image>.wic
 ```
 
-3. 使用 WIC 实际字节数计算回读扇区数：
+3. 取出 WIC 的实际字节数，供写入和回读使用：
 
-```text
-sectors = WIC_bytes / 512
+```sh
+WIC=/mnt/usb/<your-image>.wic
+WIC_SIZE=$(stat -c %s "$WIC" 2>/dev/null || wc -c < "$WIC")
+echo "$WIC_SIZE"
 ```
 
 4. 整盘写入：
 
 ```sh
-dd if=/mnt/usb/<your-image>.wic of=/dev/mmcblk0 bs=4M conv=fsync
+dd if="$WIC" of=/dev/mmcblk0 bs=4M conv=fsync
 sync
 ```
 
 5. 回读 WIC 覆盖范围并校验 SHA256：
 
 ```sh
-dd if=/dev/mmcblk0 bs=512 count=<WIC_sectors> 2>/dev/null | sha256sum
+if [ $((WIC_SIZE % 512)) -ne 0 ]; then
+    echo "WIC size is not a multiple of 512 bytes" >&2
+    exit 1
+fi
+
+BLOCK=$((4 * 1024 * 1024))
+FULL=$((WIC_SIZE / BLOCK))
+REM=$((WIC_SIZE % BLOCK))
+
+{
+    if [ "$FULL" -gt 0 ]; then
+        dd if=/dev/mmcblk0 bs=$BLOCK count=$FULL 2>/dev/null
+    fi
+    if [ "$REM" -gt 0 ]; then
+        dd if=/dev/mmcblk0 bs=512 skip=$((FULL * BLOCK / 512)) \
+            count=$((REM / 512)) 2>/dev/null
+    fi
+} | sha256sum
 ```
 
 回读哈希必须与第 2 步 WIC 的 SHA256 完全一致。
 
-6. 回读校验通过后再执行：
+> 这里用 4 MiB 块读，是为了减少读请求次数。1 GB 镜像仍然必须实际读取 1 GB，
+> 全量校验的耗时下限由 U 盘/eMMC 的读带宽决定，不能通过改块大小消除。
+> 不要用 `bs=512` 对 1 GB 镜像逐扇区回读：那会产生约 209 万次读请求。
+
+6. 按选定的校验策略通过后再执行：
 
 ```sh
 sync
 reboot -f
 ```
+
+### 校验分级
+
+全量 SHA256 是“写入范围逐字节一致”的证明；如果只是开发迭代，可以根据风险降级，
+但不能把抽样检查说成全量校验。
+
+| 场景 | 建议做法 | 能证明什么 |
+| --- | --- | --- |
+| 开发迭代 | 检查 `dd` 退出码 + `sync`；回读 GPT/BCB/FIT/ext4 superblock 等关键区域；启动后做功能测试 | 写入链路无错误、关键元数据可用；不证明全镜像逐字节一致 |
+| 发布候选 | 本文的大块全量回读 + SHA256 | WIC 覆盖范围逐字节一致 |
+| 现场/高可靠 | 全量 SHA256 + 未挂载或只读挂载时 `e2fsck -fn` + 启动/回滚测试 | 数据一致性和可启动性 |
+
+快速校验示例（只检查已定义的关键区域，不能替代全量 SHA256）：
+
+```sh
+# BCB：本板固定在第 153 个 512-byte 扇区
+dd if=/dev/mmcblk0 bs=512 skip=153 count=1 2>/dev/null | sha256sum
+
+# yocto/FIT 头：确认 magic 为 d0 0d fe ed
+dd if=/dev/mmcblk0p26 bs=512 count=1 2>/dev/null | hexdump -C -n 4
+```
+
+GPT、bootloader 和 rootfs 的具体位置必须以当前板型的分区表为准，不能把示例偏移复制到其他板子。
+如果只是防偶发写入错误，并且不需要与发布 SHA256 对齐，可以用同一种较弱哈希
+（例如 `md5sum` 或 `cksum`）换取速度；这类哈希不应当作安全校验。
 
 补充要求：
 
@@ -171,6 +219,7 @@ reboot -f
 * 不要用近似 MiB/GiB 偏移代替 WIC 的真实 512-byte 扇区数。
 * 写入前必须确认 `/dev/mmcblk0` 是目标 eMMC，不能把 U 盘或主机磁盘当目标。
 * 回读 SHA256 不一致时禁止 reboot 进入新系统，应停留在 rescue shell 分析。
+* 全量回读必须使用大块 I/O；抽样检查只能作为冒烟测试，不能替代全量校验。
 
 ### 分区/镜像提取
 
