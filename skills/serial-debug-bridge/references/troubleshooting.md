@@ -190,3 +190,18 @@ agent 在超时时会把控制台最后约 200 字节写进日志（`-LogFile`�
 
 > `shutdown` 与 `stop-agent*` 只结束 **agent 进程**（串口随之释放），不会动设备；别和 `reset`
 > 搞混——`reset` 拉 DTR 会重启设备。
+
+## 13. 重刷镜像后 scp 失效
+
+设备重刷后，串口、网络和 SSH 状态都可能变化，最常见的是：
+
+* 设备 IP 变成镜像默认值，client 的反向隧道仍指向旧地址；
+* `/etc/dropbear` 为空，Dropbear host key 没有生成；
+* `/root/.ssh/authorized_keys` 被清空，server 公钥登录失败；
+* server 的 `known_hosts` 仍保存旧设备 host key。
+
+处理顺序：串口确认 `ip -br addr` 和 `systemctl status dropbear.socket` →
+修正 client 隧道目标 → 生成 Dropbear host key → 恢复 server 公钥 →
+清理 server 旧 `known_hosts` → 用 `ssh` 和 `scp -O` 做端到端验证。
+
+完整命令和常见报错见 `references/scp-reverse-tunnel.md`。

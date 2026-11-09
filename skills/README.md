@@ -6,7 +6,7 @@
 
 | skill | 说明 |
 | --- | --- |
-| `serial-debug-bridge` | server 侧串口调试；依赖 serial-debug-bridge 仓库的 `devctl.py` |
+| `serial-debug-bridge` | server 侧串口调试与反向隧道 SCP；依赖 serial-debug-bridge 仓库的 `devctl.py` |
 
 `cadywang-blog` 仍在它的源仓库里，见根 README 的 catalog。要新增一个 skill：
 

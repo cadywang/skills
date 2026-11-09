@@ -61,7 +61,7 @@ curl -fsSL https://raw.githubusercontent.com/cadywang/serial-debug-bridge/main/c
 
 | skill | 目录 | 用途 |
 | --- | --- | --- |
-| `serial-debug-bridge` | `skills/serial-debug-bridge/` | 在 server 侧通过串口桥操作嵌入式设备：执行命令、传文件、复位、交互控制台、链路排障 |
+| `serial-debug-bridge` | `skills/serial-debug-bridge/` | 在 server 侧通过串口桥或反向隧道 SCP 操作嵌入式设备：执行命令、传文件、复位、交互控制台、链路排障 |
 
 > skill 只负责「怎么用」；真正干活的 `agent/` 与 `devctl.py` 在
 > [cadywang/serial-debug-bridge](https://github.com/cadywang/serial-debug-bridge)。
