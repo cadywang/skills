@@ -1,8 +1,8 @@
 ---
 name: serial-debug-bridge
-description: 在 server 上通过 serial-debug-bridge 操作接在 client 串口上的嵌入式设备：执行命令、传文件、复位、交互控制台，以及链路排障。适用于串口不在本机（devctl/agent/TCP/SSH/反向隧道）的场景。
+description: 在 server 上通过 serial-debug-bridge 操作接在 client 串口上的嵌入式设备：执行命令、传文件、复位、交互控制台，以及链路排障；也覆盖 server 经反向 SSH 隧道用 scp 直传设备。适用于串口不在本机（devctl/agent/TCP/SSH/反向隧道）的场景。
 metadata:
-  short-description: 通过远端串口调试嵌入式设备
+  short-description: 通过远端串口/SCP 调试嵌入式设备
 ---
 
 # serial-debug-bridge（server 侧操作）
@@ -20,7 +20,7 @@ server: devctl  --TCP 或 SSH-->  client: serial_agent  --UART-->  嵌入式设�
 
 ## 怎么调用：用 `scripts/sdb`
 
-`scripts/sdb` 是唯一的推荐入口，它替你处理端点解析、鉴权参数和外层超时：
+`scripts/sdb` 是串口通道的推荐入口，它替你处理端点解析、鉴权参数和外层超时：
 
 ```bash
 S="$HOME/.codex/skills/serial-debug-bridge/scripts/sdb"
@@ -58,6 +58,29 @@ python3 ~/serial-debug-bridge/devctl.py --tcp 127.0.0.1:17801 exec "uname -a"
 > **大文件务必放宽超时**：`SDB_EXTRA="-q" SDB_TIMEOUT=0 $S push big.bin /tmp/big.bin`。
 > 60 KB 上传就要约 50 秒（见下）。
 
+## 反向隧道 SCP（设备 SSH 可用时优先）
+
+设备网络和 Dropbear/SSH 可用时，不要用串口 `push` 搬大文件；走 server 的
+`127.0.0.1:<remote-port>` 反向隧道，速度快几个数量级：
+
+```bash
+scp -O -P <remote-port> ./fw.bin root@127.0.0.1:/tmp/
+ssh -p <remote-port> root@127.0.0.1
+```
+
+链路：
+
+```text
+server: scp/ssh -> 127.0.0.1:<remote-port>
+      --SSH -R--> client -> <device-ip>:<device-ssh-port>
+```
+
+要点：
+
+* Dropbear 通常只支持 legacy SCP，必须加 `-O`；`scp` 用大写 `-P`，`ssh` 用小写 `-p`。
+* 设备重刷后 IP、Dropbear host key、`/root/.ssh/authorized_keys` 都可能变化。
+* 恢复步骤、常见报错和验证命令见 `references/scp-reverse-tunnel.md`。
+
 ## 开工前的两步
 
 ```bash
@@ -73,6 +96,8 @@ $S exec 'command -v busybox base64 openssl awk od md5sum'
 `--ports` 会列出本机该端口的监听者，用来发现「端口被别的进程抢占」。
 
 ## 传输可靠性与速度（必须知道）
+
+> 设备网络/SSH 可用时，优先走反向隧道 `scp`；串口 `push` 只作为网络不通时的兜底。
 
 串口在高波特率下**收发两个方向都会偶发丢字节**，所以不要硬怼：
 
@@ -122,6 +147,12 @@ $S exec 'command -v busybox base64 openssl awk od md5sum'
 7. **需要进入 LK/Realtek 控制台、USB rescue 或写 eMMC**
    协议模式 `sdb shell` 在 LK 启动阶段会产生输入反压，ESC/q 可能直到 Linux `login:` 才送达。
    改用 `scripts/sdb-enter-lk-raw.py`，完整步骤和板型限制见 `references/lk-console.md`。
+
+8. **重刷镜像后 scp 失效**
+   典型原因是设备 IP 变了、反向隧道目标没更新、Dropbear host key 丢失、
+   `/root/.ssh/authorized_keys` 丢失，或 server 的 known_hosts 还是旧 key。
+   先用串口确认 `ip -br addr` 和 `systemctl status dropbear.socket`，
+   再按 `references/scp-reverse-tunnel.md` 恢复。
 
 ## 发现 bug：请提交 patch，不要只绕过去
 
