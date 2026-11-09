@@ -119,6 +119,10 @@ $S exec 'command -v busybox base64 openssl awk od md5sum'
    登录状态会一直保持（agent 持有同一条串口会话），所以**一次会话只需登录一次**。
    详见 `references/troubleshooting.md` §10。
 
+7. **需要进入 LK/Realtek 控制台、USB rescue 或写 eMMC**
+   协议模式 `sdb shell` 在 LK 启动阶段会产生输入反压，ESC/q 可能直到 Linux `login:` 才送达。
+   改用 `scripts/sdb-enter-lk-raw.py`，完整步骤和板型限制见 `references/lk-console.md`。
+
 ## 发现 bug：请提交 patch，不要只绕过去
 
 这套桥（`agent/*`、`cli/*`、`tests/*`）由维护者在 GitHub 上持续修正；本 skill 自身维护在
@@ -146,4 +150,5 @@ $S exec 'command -v busybox base64 openssl awk od md5sum'
 * 破坏性操作（`rm`、`dd`、写 flash、`reset`、刷固件）**必须**先与用户确认，
   并先 `$S exec 'uname -a; hostname'` 确认目标是预期设备——端口/隧道可能指向另一台设备。
 * `push` 会覆盖目标路径，先 `$S exec 'ls -l <dir>'` 看看。
+* 刷写后校验不要对整盘盲目回读；按镜像实际覆盖范围或关键 512B 扇区（盘头、GPT、BCB、FIT 头、盘尾）校验，避免无谓耗时。
 * 不要把 agent 端口暴露到公网；TCP 方式配合 `SDB_TOKEN`（agent 用 `--auth` 启动）或 SSH。
