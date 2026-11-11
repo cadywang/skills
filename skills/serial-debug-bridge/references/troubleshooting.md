@@ -204,4 +204,4 @@ agent 在超时时会把控制台最后约 200 字节写进日志（`-LogFile`�
 修正 client 隧道目标 → 生成 Dropbear host key → 恢复 server 公钥 →
 清理 server 旧 `known_hosts` → 用 `ssh` 和 `scp -O` 做端到端验证。
 
-完整命令和常见报错见 `references/scp-reverse-tunnel.md`。
+完整命令和常见报错见 `reverse-ssh-scp` skill 的 `references/scp-reverse-tunnel.md`。

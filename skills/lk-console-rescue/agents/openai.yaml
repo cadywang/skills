@@ -1,0 +1,7 @@
+interface:
+  display_name: "LK Console Rescue"
+  short_description: "进入 Realtek LK 与 USB rescue 恢复开发板"
+  brand_color: "#8A4B08"
+  default_prompt: "Use $lk-console-rescue to enter the Realtek LK console or USB rescue mode safely."
+policy:
+  allow_implicit_invocation: true

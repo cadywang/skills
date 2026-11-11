@@ -1,0 +1,7 @@
+interface:
+  display_name: "Reverse SSH SCP"
+  short_description: "通过反向 SSH 隧道向嵌入式开发板传文件"
+  brand_color: "#1F6F8B"
+  default_prompt: "Use $reverse-ssh-scp to transfer files to the embedded device through a reverse SSH tunnel."
+policy:
+  allow_implicit_invocation: true
