@@ -6,7 +6,10 @@
 
 | skill | 说明 |
 | --- | --- |
-| `serial-debug-bridge` | server 侧串口调试与反向隧道 SCP；依赖 serial-debug-bridge 仓库的 `devctl.py` |
+| `serial-debug-bridge` | 通用远端串口桥：连接检查、执行命令、push/pull、交互 shell、复位和基础排障；依赖 serial-debug-bridge 仓库的 `devctl.py` |
+| `reverse-ssh-scp` | 设备 SSH 可用时，通过反向隧道用 `scp -O` 传文件，并恢复 host key、authorized_keys 和 known_hosts |
+| `lk-console-rescue` | 进入 Realtek LK 或 USB rescue，处理 rtkemmc、BCB、eMMC 和 WIC 镜像校验；建议与 `serial-debug-bridge` 一起安装 |
+| `kernel-misra-c` | 编写、修改或审查 C 代码时应用 Linux 内核 coding style 与 MISRA C 约束；强调项目配置、偏差记录和静态分析证据 |
 
 `cadywang-blog` 仍在它的源仓库里，见根 README 的 catalog。要新增一个 skill：
 

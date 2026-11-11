@@ -57,11 +57,16 @@ curl -fsSL https://raw.githubusercontent.com/cadywang/serial-debug-bridge/main/c
 # 或者 clone 整个仓库，然后 export SDB_DEVCTL=/path/to/cli/devctl.py
 ```
 
+`reverse-ssh-scp` 不依赖 devctl。`lk-console-rescue` 的 raw helper 也可独立运行，但预检示例复用 `serial-debug-bridge/scripts/sdb`，建议两者一起安装。
+
 ## 本仓库托管的 skill
 
 | skill | 目录 | 用途 |
 | --- | --- | --- |
-| `serial-debug-bridge` | `skills/serial-debug-bridge/` | 在 server 侧通过串口桥或反向隧道 SCP 操作嵌入式设备：执行命令、传文件、复位、交互控制台、链路排障 |
+| `serial-debug-bridge` | `skills/serial-debug-bridge/` | 通用远端串口桥：连接检查、执行命令、push/pull、交互 shell、复位和基础排障 |
+| `reverse-ssh-scp` | `skills/reverse-ssh-scp/` | 设备 SSH 可用时，通过反向隧道用 scp -O 传文件，并恢复 host key、authorized_keys 和 known_hosts |
+| `lk-console-rescue` | `skills/lk-console-rescue/` | 进入 Realtek LK 或 USB rescue，处理 rtkemmc、BCB、eMMC 和 WIC 镜像校验 |
+| `kernel-misra-c` | `skills/kernel-misra-c/` | 编写、修改或审查 C 代码时应用 Linux 内核 coding style 与 MISRA C 约束，并记录偏差和验证证据 |
 
 > skill 只负责「怎么用」；真正干活的 `agent/` 与 `devctl.py` 在
 > [cadywang/serial-debug-bridge](https://github.com/cadywang/serial-debug-bridge)。

@@ -36,7 +36,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File <client>\agent\serial_agent.
 ### 2. server 侧启动 raw helper
 
 ```bash
-RAW="$HOME/.codex/skills/serial-debug-bridge/scripts/sdb-enter-lk-raw.py"
+RAW="$HOME/.codex/skills/lk-console-rescue/scripts/sdb-enter-lk-raw.py"
 python3 "$RAW" --tcp 127.0.0.1:17801 --timeout 600 --log /tmp/lk-console.log
 ```
 

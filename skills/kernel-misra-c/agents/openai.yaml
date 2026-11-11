@@ -1,0 +1,7 @@
+interface:
+  display_name: "Kernel MISRA C"
+  short_description: "按内核 coding style 与 MISRA C 编写和审查 C 代码"
+  brand_color: "#3B5B2E"
+  default_prompt: "Use $kernel-misra-c to implement or review this C change against kernel style and MISRA C constraints."
+policy:
+  allow_implicit_invocation: true
