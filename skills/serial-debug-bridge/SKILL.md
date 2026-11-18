@@ -1,6 +1,6 @@
 ---
 name: serial-debug-bridge
-description: 在 server 上通过 serial-debug-bridge 操作接在 client 串口上的嵌入式设备：执行命令、传文件、复位、交互控制台，以及链路排障；也覆盖 server 经反向 SSH 隧道用 scp 直传设备。适用于串口不在本机（devctl/agent/TCP/SSH/反向隧道）的场景。
+description: 在 server 上通过 serial-debug-bridge 操作接在 client 串口上的嵌入式设备：执行命令、传文件、复位、交互控制台，以及链路排障；也覆盖 server 经反向 SSH 隧道用 scp 直传设备，或访问 client 上的 adb server。适用于串口不在本机（devctl/agent/TCP/SSH/反向隧道）的场景。
 metadata:
   short-description: 通过远端串口/SCP 调试嵌入式设备
 ---
@@ -81,6 +81,21 @@ server: scp/ssh -> 127.0.0.1:<remote-port>
 * 设备重刷后 IP、Dropbear host key、`/root/.ssh/authorized_keys` 都可能变化。
 * 恢复步骤、常见报错和验证命令见 `references/scp-reverse-tunnel.md`。
 
+### 同一条隧道访问 adb server
+
+server 需要访问 client 上的 adb server 时，不要给每个交互式 SSH 会话加
+`RemoteForward`：第二个会话会抢不到远端端口并打印 warning。在同一条**常驻**反向隧道上
+再增加一条：
+
+```text
+-R 127.0.0.1:9000:127.0.0.1:5037
+```
+
+server 侧使用 `adb -P 9000 devices`（或
+`ANDROID_ADB_SERVER_PORT=9000 adb devices`）。Windows OpenSSH 不支持 ControlMaster，
+不能热加转发，需要重启隧道。完整说明、supervisor 配置和排错见
+`references/adb-over-ssh.md`。
+
 ## 开工前的两步
 
 ```bash
@@ -153,6 +168,11 @@ $S exec 'command -v busybox base64 openssl awk od md5sum'
    `/root/.ssh/authorized_keys` 丢失，或 server 的 known_hosts 还是旧 key。
    先用串口确认 `ip -br addr` 和 `systemctl status dropbear.socket`，
    再按 `references/scp-reverse-tunnel.md` 恢复。
+
+9. **server 上的 adb 看不到设备**
+   adb server 在 client 上，不是串口问题。确认常驻隧道里有
+   `-R 127.0.0.1:9000:127.0.0.1:5037`，client 的 `127.0.0.1:5037` 正在监听，
+   server 用 `adb -P 9000 devices`；完整步骤见 `references/adb-over-ssh.md`。
 
 ## 发现 bug：请提交 patch，不要只绕过去
 
